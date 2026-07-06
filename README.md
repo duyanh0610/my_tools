@@ -1,38 +1,38 @@
 # mail_working_timesheet
 
-Tự động lấy dữ liệu chấm công từ OPMS, phát hiện vi phạm, và gửi mail giải trình đến quản lý — chạy tự động qua cron hai lần mỗi tháng.
+Automatically fetches attendance data from OPMS, detects violations, and sends explanation emails to the manager — runs via cron twice a month.
 
-## Tính năng
+## Features
 
-- Đăng nhập OPMS qua Google SSO bằng Chrome CDP (không cần nhập mật khẩu thủ công)
-- Lấy dữ liệu chấm công qua Odoo JSON-RPC API
-- Phát hiện các vi phạm: đi muộn, thiếu check-in/check-out, thiếu giờ công
-- Tự động soạn và gửi mail giải trình bằng tiếng Việt
-- Xử lý đặc biệt tháng 2 (năm thường/nhuận)
+- Logs into OPMS via Google SSO using Chrome CDP (no manual password entry)
+- Fetches attendance data via Odoo JSON-RPC API
+- Detects violations: late check-in, missing check-in/check-out, insufficient work hours
+- Auto-composes and sends explanation emails in Vietnamese
+- Handles February edge cases (regular/leap year)
 
-## Cấu trúc kỳ báo cáo
+## Report periods
 
-| Ngày cron chạy | Kỳ báo cáo |
+| Cron trigger | Period covered |
 | --- | --- |
-| Ngày 15 | 1 – 15 tháng đó |
-| Ngày cuối tháng (28/29/30/31) | 16 – cuối tháng |
+| 15th of the month | 1st – 15th |
+| Last day of the month (28/29/30/31) | 16th – end of month |
 
-## Cài đặt
+## Setup
 
-### 1. Cài dependencies
+### 1. Install dependencies
 
 ```bash
 cd mail_working_timesheet
 npm install
 ```
 
-### 2. Tạo file config
+### 2. Create config file
 
 ```bash
 cp config.json.example config.json
 ```
 
-Mở `config.json` và điền thông tin thực tế:
+Fill in your details in `config.json`:
 
 ```json
 {
@@ -56,21 +56,21 @@ Mở `config.json` và điền thông tin thực tế:
     "cc": ["hr@company.com"]
   },
   "employee": {
-    "name": "Họ Tên",
-    "department": "Bộ phận",
-    "manager_name": "Tên Trưởng phòng",
+    "name": "Full Name",
+    "department": "Department",
+    "manager_name": "Manager Name",
     "phone": "0900000000"
   }
 }
 ```
 
-> **Gmail App Password**: Vào [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → tạo App Password cho "Mail".
+> **Gmail App Password**: Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → create an App Password for "Mail".
 
-### 3. Đăng nhập Chrome lần đầu
+### 3. First-time Chrome login
 
-Tool dùng một Chrome profile riêng (thư mục `.chrome_profile/`) để giữ session OPMS độc lập với Chrome cá nhân.
+The tool uses a dedicated Chrome profile (`.chrome_profile/`) to keep the OPMS session separate from your personal Chrome.
 
-Lần đầu chạy, cần đăng nhập thủ công một lần:
+On the first run, log in manually once:
 
 ```bash
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
@@ -78,50 +78,50 @@ Lần đầu chạy, cần đăng nhập thủ công một lần:
   --no-first-run
 ```
 
-Sau khi Chrome mở, truy cập OPMS và đăng nhập bằng Google. Đóng Chrome. Session sẽ được lưu và tự động dùng lại cho các lần chạy tiếp theo (thường kéo dài vài tháng).
+Once Chrome opens, navigate to OPMS and sign in with Google. Close Chrome. The session is saved and reused automatically on subsequent runs (typically lasts several months).
 
-### 4. Thiết lập cron
+### 4. Set up the cron job
 
 ```bash
 bash setup_cron.sh
 ```
 
-Cron sẽ chạy `node main.js` lúc **9:00 sáng** vào ngày 15 và ngày cuối tháng.
+This schedules `node main.js` to run at **9:00 AM** on the 15th and the last day of each month.
 
-## Cách dùng thủ công
+## Manual usage
 
 ```bash
-# Kiểm tra (không gửi mail)
+# Preview without sending
 node main.js --dry-run
 
-# Chạy thật
+# Run normally
 node main.js
 ```
 
-Log được ghi vào `mail_log.txt`.
+Logs are written to `mail_log.txt`.
 
-## Luồng hoạt động
+## How it works
 
 ```
-Cron trigger (9:00 AM, ngày 15 / cuối tháng)
+Cron trigger (9:00 AM, 15th / last day of month)
   ↓
-Xác định kỳ báo cáo
+Determine report period
   ↓
-Mở Chrome .chrome_profile + kết nối qua CDP
+Open Chrome with .chrome_profile + connect via CDP
   ↓
-Đăng nhập OPMS qua Google SSO (tự động nếu session còn)
+Log into OPMS via Google SSO (automatic if session is still valid)
   ↓
-Lấy dữ liệu chấm công qua Odoo JSON-RPC API
+Fetch attendance records via Odoo JSON-RPC API
   ↓
-Đăng xuất OPMS (giải phóng single-session)
+Log out of OPMS (releases the single-session lock)
   ↓
-Phân tích vi phạm
-  ↓ (nếu có vi phạm)
-Gửi mail giải trình → manager + CC bộ phận HC
+Analyze violations
+  ↓ (if any found)
+Send explanation email → manager + CC HR department
 ```
 
-## Lưu ý
+## Notes
 
-- OPMS chỉ cho phép **1 session** đăng nhập tại một thời điểm. Tool tự đăng xuất sau khi lấy dữ liệu xong.
-- Nếu Google yêu cầu đăng nhập lại (session hết hạn), chạy lại bước 3 ở trên.
-- Chrome của tool chạy song song với Chrome cá nhân, không ảnh hưởng lẫn nhau.
+- OPMS only allows **one active session** at a time. The tool logs out automatically after fetching data.
+- If Google requires re-authentication (session expired), repeat step 3 above.
+- The tool's Chrome instance runs alongside your personal Chrome without interfering.

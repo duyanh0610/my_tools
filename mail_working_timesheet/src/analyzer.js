@@ -79,7 +79,7 @@ function analyzeTimesheet(records, schedule) {
   return violations;
 }
 
-/** Chuyển "HH:MM" thành milliseconds từ đầu ngày */
+/** Parse "HH:MM" to milliseconds since midnight */
 function parseTime(text) {
   if (!text) return null;
   const m = text.match(/^(\d{1,2}):(\d{2})/);

@@ -35,18 +35,18 @@ class OPMSScraper {
   }
 
   async _openBrowser() {
-    // Thử connect Chrome đang chạy trên port 9222
+    // Try connecting to Chrome already running on port 9222
     try {
       const b = await puppeteer.connect({ browserURL: 'http://localhost:9222', defaultViewport: null });
-      console.log('Đã kết nối Chrome đang chạy.');
+      console.log('Connected to existing Chrome instance.');
       return b;
     } catch {}
 
-    // Kill Chrome phụ cũ (nếu có) rồi spawn mới
+    // Kill any previous tool Chrome instance, then spawn a new one
     try { execSync('pkill -f "remote-debugging-port=9222"', { stdio: 'ignore' }); } catch {}
     await sleep(1500);
 
-    console.log('Đang mở Chrome...');
+    console.log('Starting Chrome...');
     spawn(CHROME_PATH, [
       `--user-data-dir=${CHROME_PROFILE_DIR}`,
       '--remote-debugging-port=9222',
@@ -60,20 +60,20 @@ class OPMSScraper {
         return await puppeteer.connect({ browserURL: 'http://localhost:9222', defaultViewport: null });
       } catch {}
     }
-    throw new Error('Không thể kết nối Chrome sau 15 giây. Hãy thử lại.');
+    throw new Error('Could not connect to Chrome after 15 seconds. Please try again.');
   }
 
   async _ensureLogin(page) {
     await page.goto(this.cfg.login_url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     if (!page.url().includes('/web/login')) {
-      console.log('Đã đăng nhập OPMS.');
+      console.log('Already logged into OPMS.');
       return;
     }
 
-    console.log('Đang đăng nhập qua Google SSO...');
+    console.log('Logging in via Google SSO...');
 
-    // Tìm nút "Log in with Google"
+    // Find the "Log in with Google" button
     const btnHandle = await page.evaluateHandle(() =>
       [...document.querySelectorAll('a, button')].find(el => {
         const text = el.textContent.trim().toLowerCase();
@@ -82,24 +82,24 @@ class OPMSScraper {
       })
     );
     const btn = btnHandle.asElement();
-    if (!btn) throw new Error('Không tìm thấy nút "Log in with Google" trên trang OPMS.');
+    if (!btn) throw new Error('Could not find "Log in with Google" button on OPMS.');
 
     await btn.click();
     await page.waitForNavigation({ timeout: 30000 }).catch(() => {});
 
     const url = page.url();
 
-    // Đã vào OPMS
+    // Successfully redirected back to OPMS
     if (url.includes(OPMS_ORIGIN) && !url.includes('/web/login')) {
-      console.log('Đăng nhập thành công!');
+      console.log('Login successful!');
       return;
     }
 
-    // Đang ở trang Google → thử click account trong picker
+    // Still on Google page — try clicking the account in the picker
     if (url.includes('accounts.google.com')) {
       const account = this.cfg.google_account;
       if (account) {
-        await sleep(2000); // chờ picker load
+        await sleep(2000); // wait for picker to load
         const accHandle = await page.evaluateHandle((email) =>
           document.querySelector(`[data-identifier="${email}"]`) ||
           [...document.querySelectorAll('li, div[role="link"], div[role="button"]')]
@@ -110,25 +110,25 @@ class OPMSScraper {
           await accEl.click();
           await page.waitForNavigation({ timeout: 30000 }).catch(() => {});
           if (page.url().includes(OPMS_ORIGIN) && !page.url().includes('/web/login')) {
-            console.log('Đăng nhập thành công qua account picker!');
+            console.log('Login successful via account picker!');
             return;
           }
         }
       }
 
       throw new Error(
-        'Google yêu cầu đăng nhập thủ công (session hết hạn hoặc lần đầu chạy).\n' +
-        `Hãy mở Chrome với thư mục: ${CHROME_PROFILE_DIR}\nvà đăng nhập Google bằng tài khoản ${account || 'công ty'}.`
+        'Google requires manual login (session expired or first run).\n' +
+        `Open Chrome with: --user-data-dir=${CHROME_PROFILE_DIR}\nand sign in with ${account || 'your company account'}.`
       );
     }
 
-    throw new Error(`Đăng nhập thất bại. URL hiện tại: ${url}`);
+    throw new Error(`Login failed. Current URL: ${url}`);
   }
 
   async _fetchRecords(page, start, end) {
     const model = this.cfg.attendance_model || 'ntq.attendance';
 
-    // Dùng buffer 1 ngày để tránh lệch múi giờ, rồi lọc client-side
+    // 1-day buffer to handle timezone edge cases; filter client-side
     const startBuf = new Date(start); startBuf.setDate(startBuf.getDate() - 1);
     const endBuf = new Date(end); endBuf.setDate(endBuf.getDate() + 1);
     const pad = n => String(n).padStart(2, '0');
@@ -161,7 +161,7 @@ class OPMSScraper {
       const coField   = findField('check_out', 'time_out', 'checkout');
 
       if (!dateField) {
-        return { error: 'Không tìm thấy field ngày trong model ' + model + '. Fields: ' + allFields.join(', ') };
+        return { error: 'Date field not found in model ' + model + '. Available fields: ' + allFields.join(', ') };
       }
 
       const domain = [[dateField, '>=', startStr], [dateField, '<=', endStr + ' 23:59:59']];
@@ -172,7 +172,7 @@ class OPMSScraper {
     }, model, dateStr(startBuf), dateStr(endBuf));
 
     if (raw.error) throw new Error(raw.error);
-    console.log(`API trả về ${raw.records.length} bản ghi thô.`);
+    console.log(`API returned ${raw.records.length} raw records.`);
 
     return raw.records
       .map(r => ({
@@ -186,11 +186,11 @@ class OPMSScraper {
 
   async _logout(page) {
     await page.goto(`${OPMS_ORIGIN}/web/session/destroy`, { waitUntil: 'domcontentloaded', timeout: 10000 });
-    console.log('Đã đăng xuất OPMS.');
+    console.log('Logged out of OPMS.');
   }
 }
 
-/** Parse datetime từ Odoo API (UTC) → Date object theo giờ Việt Nam (UTC+7) */
+/** Parse Odoo API datetime (UTC) → local Date object (UTC+7) */
 function parseAPIDate(val) {
   if (!val) return null;
   const m = String(val).match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
@@ -201,7 +201,7 @@ function parseAPIDate(val) {
   return new Date(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate());
 }
 
-/** Trích xuất "HH:MM" từ giá trị field Odoo (datetime UTC, float, hoặc string) */
+/** Extract "HH:MM" from an Odoo field value (UTC datetime, float, or string) */
 function extractTime(val) {
   if (val === null || val === undefined || val === false) return null;
 
@@ -214,7 +214,7 @@ function extractTime(val) {
 
   const s = String(val);
 
-  // Datetime UTC: "2026-06-15 01:30:00" → convert sang UTC+7
+  // UTC datetime string → convert to UTC+7
   const dt = s.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
   if (dt) {
     const utc = Date.UTC(+dt[1], +dt[2] - 1, +dt[3], +dt[4], +dt[5]);
@@ -222,7 +222,7 @@ function extractTime(val) {
     return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
   }
 
-  // String time: "08:30" hoặc "08:30:00"
+  // Plain time string: "08:30" or "08:30:00"
   const t = s.match(/(\d{1,2}):(\d{2})/);
   if (t) return `${String(t[1]).padStart(2, '0')}:${t[2]}`;
 

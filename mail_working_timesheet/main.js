@@ -2,12 +2,12 @@
 'use strict';
 
 /**
- * Tự động gửi mail giải trình chấm công từ OPMS.
+ * Automatically sends attendance explanation emails from OPMS.
  *
- * Cách dùng:
- *   node main.js            – Chạy bình thường, tự động gửi mail
- *   node main.js --dry-run  – Soạn mail nhưng không gửi (để kiểm tra)
- *   node main.js --debug    – Bật log chi tiết
+ * Usage:
+ *   node main.js            – Run normally and send email
+ *   node main.js --dry-run  – Preview email without sending
+ *   node main.js --debug    – Enable verbose logging
  *
  * Cron: 0 9 15,28,29,30 * *
  */
@@ -15,10 +15,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const { OPMSScraper } = require('./scraper');
-const { analyzeTimesheet } = require('./analyzer');
-const { buildEmail } = require('./template');
-const { sendEmail } = require('./emailer');
+const { OPMSScraper } = require('./src/scraper');
+const { analyzeTimesheet } = require('./src/analyzer');
+const { buildEmail } = require('./src/template');
+const { sendEmail } = require('./src/emailer');
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
@@ -33,12 +33,12 @@ function getPeriod() {
     return { start: new Date(y, m, 1), end: new Date(y, m, 15) };
   }
 
-  // Kỳ 2: chạy khi là ngày cuối tháng, hoặc ngày 30 với tháng có ≥30 ngày
+  // Second half: run on the last day of the month, or day 30 for months with ≥30 days
   if (d === lastDay || (d === 30 && lastDay >= 30)) {
     return { start: new Date(y, m, 16), end: new Date(y, m, lastDay) };
   }
 
-  // Ngày 28/29 của tháng không phải tháng 2 → bỏ qua
+  // Day 28/29 in non-February months → skip
   return null;
 }
 
@@ -50,8 +50,8 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run');
 
   if (!fs.existsSync(CONFIG_PATH)) {
-    console.error(`Lỗi: Không tìm thấy ${CONFIG_PATH}`);
-    console.error('Hãy sao chép config.json.example thành config.json và điền thông tin thực tế.');
+    console.error(`Error: ${CONFIG_PATH} not found.`);
+    console.error('Copy config.json.example to config.json and fill in your details.');
     process.exit(1);
   }
 
@@ -59,26 +59,26 @@ async function main() {
 
   const period = getPeriod();
   if (!period) {
-    console.log('Hôm nay không phải ngày chạy báo cáo. Thoát.');
+    console.log('Not a report day. Exiting.');
     return;
   }
 
   const { start, end } = period;
   const half = start.getDate() === 1 ? '1' : '2';
-  console.log(`[Kỳ ${half}] Đang lấy dữ liệu chấm công: ${fmt(start)} – ${fmt(end)}`);
+  console.log(`[Period ${half}] Fetching attendance: ${fmt(start)} – ${fmt(end)}`);
 
   const scraper = new OPMSScraper(config.opms);
   const records = await scraper.getTimesheet(start, end);
-  console.log(`Đã lấy ${records.length} ngày công.`);
+  console.log(`Fetched ${records.length} attendance records.`);
 
   const violations = analyzeTimesheet(records, config.work_schedule);
 
   if (violations.length === 0) {
-    console.log('Không có vi phạm trong kỳ này. Không cần gửi mail giải trình.');
+    console.log('No violations found this period. No email needed.');
     return;
   }
 
-  console.log(`Phát hiện ${violations.length} ngày có bất thường.`);
+  console.log(`Found ${violations.length} day(s) with violations.`);
 
   const { subject, text, html } = buildEmail(violations, start, end, config);
 
@@ -89,16 +89,16 @@ async function main() {
   console.log('='.repeat(60) + '\n');
 
   if (dryRun) {
-    console.log('[Dry-run] Mail không được gửi.');
+    console.log('[Dry-run] Email not sent.');
     return;
   }
 
-  console.log(`Đang gửi mail đến: ${config.recipients.to.join(', ')} ...`);
+  console.log(`Sending email to: ${config.recipients.to.join(', ')} ...`);
   await sendEmail(config.gmail, config.recipients, subject, text, html);
-  console.log('Mail đã được gửi thành công!');
+  console.log('Email sent successfully!');
 }
 
 main().catch((err) => {
-  console.error('Lỗi:', err.message);
+  console.error('Error:', err.message);
   process.exit(1);
 });

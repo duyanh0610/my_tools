@@ -4,8 +4,8 @@ const ejs = require('ejs');
 const fs = require('fs');
 const path = require('path');
 
-const TEXT_TEMPLATE = path.join(__dirname, 'email.ejs');
-const HTML_TEMPLATE = path.join(__dirname, 'email.html.ejs');
+const TEXT_TEMPLATE = path.join(__dirname, '../templates/email.ejs');
+const HTML_TEMPLATE = path.join(__dirname, '../templates/email.html.ejs');
 
 function buildEmail(violations, start, end, config) {
   const { name, department, phone, manager_name } = config.employee;
