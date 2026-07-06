@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; font-size: 13px; color: #4C4C4C;">
+
+<p>Dear anh <%- managerName %>,</p>
+<p>
+  Tôi là: <strong><%- name %></strong><br>
+  Bộ phận: <strong><%- department %></strong>
+</p>
+<p>Tôi gửi mail này để xin anh/chị xác nhận giúp tôi thông tin timesheet như sau:</p>
+
+<ul style="padding-left: 20px;">
+<% violations.forEach(function(v) { %>
+  <li>
+    <strong><%- formatDate(v.record.date) %></strong> (<%- v.weekdayVi %>): <%- describe(v) %><br>
+    <em>Nguyên nhân thiếu thông tin: <%- reason %></em>
+  </li>
+<% }); %>
+</ul>
+
+<p>
+  Mong anh xác nhận giúp tôi để bộ phận Nhân sự note lại.<br>
+  Xin cảm ơn
+</p>
+
+<br>
+<table cellpadding="0" cellspacing="0" style="border-spacing:0; border-collapse:collapse; color:#444; width:400px; font-size:10pt; font-family:Arial,sans-serif;">
+  <tr>
+    <td colspan="2" style="padding:0;">
+      <span style="font-size:12pt; font-weight:bold; color:#000;"><%- name %> (Mr.)</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" style="padding:5px 0 0;">
+      <strong style="color:#F1C232; font-family:Arial,sans-serif;"><%- department %> Department</strong>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" style="padding:0;">&nbsp;</td>
+  </tr>
+  <tr>
+    <td valign="top" style="padding:0 15px 0 0; border-right:1px solid #FFC20F;">
+      <img src="https://hblab.vn/wp-content/uploads/2021/11/Logo-M.png" width="162" alt="HBLab" style="display:block; max-width:162px;">
+    </td>
+    <td valign="top" style="padding:0 0 0 15px;">
+      <% if (phone) { %><strong>Tel:&nbsp;<%- phone %></strong><br><% } %>
+      <strong>Web:</strong>&nbsp;<a href="https://hblab.vn/" style="color:#1A50B7;">https://hblab.vn/</a><br>
+      <strong>Add:</strong>&nbsp;219 Trung Kinh Street, Cau Giay District, Hanoi, Vietnam
+    </td>
+  </tr>
+</table>
+
+<br>
+<p style="color:#FF0000; font-size:11px;">
+  This email contains strictly confidential information. If you are not the intended recipient,
+  please notify the sender immediately. Any form of copying, distribution, or sharing of the
+  email's content, whether accidental or intentional, is strictly prohibited and may be unlawful.
+</p>
+
+</body>
+</html>

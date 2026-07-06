@@ -1,0 +1,4 @@
+config.json
+mail_log.txt
+node_modules/
+.chrome_profile/

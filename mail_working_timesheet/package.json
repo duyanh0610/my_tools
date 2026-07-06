@@ -1,0 +1,16 @@
+{
+  "name": "mail-working-timesheet",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "dry-run": "node main.js --dry-run",
+    "debug": "node main.js --debug --dry-run"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "nodemailer": "^6.9.13",
+    "puppeteer-core": "^19.0.0"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "opms": {
+    "login_url": "https://opms.insight.hblab.co.jp/web/login",
+    "attendance_model": "ntq.attendance",
+    "google_account": "your.email@company.com",
+    "browser_channel": "chrome",
+    "chrome_profile": "Default"
+  },
+
+  "work_schedule": {
+    "latest_checkin": "08:30",
+    "min_work_hours": 8.0,
+    "lunch_break_hours": 1.5,
+    "grace_period_minutes": 5
+  },
+
+  "gmail": {
+    "sender_email": "your.email@company.com",
+    "app_password": "xxxx xxxx xxxx xxxx"
+  },
+
+  "recipients": {
+    "to": ["manager@company.com"],
+    "cc": ["hr@company.com"]
+  },
+
+  "employee": {
+    "name": "Họ Tên",
+    "department": "Bộ phận",
+    "manager_name": "Tên Trưởng phòng",
+    "phone": "0900000000"
+  },
+
+  "default_reason": "Lý do cá nhân"
+}

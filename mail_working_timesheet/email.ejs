@@ -1,0 +1,17 @@
+Dear anh <%- managerName %>,
+Tôi là: <%- name %>
+Bộ phận: <%- department %>
+Tôi gửi mail này để xin anh/chị xác nhận giúp tôi thông tin timesheet như sau:
+<% violations.forEach(function(v) { %>
+- <%- formatDate(v.record.date) %> (<%- v.weekdayVi %>): <%- describe(v) %>
+  Nguyên nhân thiếu thông tin: <%- reason %>
+<% }); %>
+Mong anh xác nhận giúp tôi để bộ phận Nhân sự note lại.
+Xin cảm ơn
+
+--
+<%- name %> (Mr.)
+<%- department %>
+<% if (phone) { %>Tel: <%- phone %>
+<% } %>Web: https://hblab.vn/
+Add: 219 Trung Kinh Street, Cau Giay District, Hanoi, Vietnam
